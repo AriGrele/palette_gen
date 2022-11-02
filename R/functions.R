@@ -77,13 +77,28 @@ from_img=function(path,...){
     as.data.frame()|>
     reshape2::dcast(x+y~cc,fun.aggregate=\(x)x[1])|>
     setNames(c('x','y','r','g','b'))
+
+  pca=prcomp(img[-2:0],center=F,scale=F)
+  km=kmeans(as.data.frame(pca$x),16,20)
   
-  km=kmeans(img[-2:0],10)
-  major=rgb(km$centers[,1],km$centers[,2],km$centers[,3])[1:4]
+  km$centers=matrix(c(#ugly
+    km$centers[which(km$centers[,1]==max(km$centers[,1])),],
+    km$centers[which(km$centers[,2]==max(km$centers[,2])),],
+    km$centers[which(km$centers[,3]==max(km$centers[,3])),],
+    km$centers[which(km$centers[,1]==min(km$centers[,1])),],
+    km$centers[which(km$centers[,2]==min(km$centers[,2])),],
+    km$centers[which(km$centers[,3]==min(km$centers[,3])),]),ncol=3,byrow=T)
+  
+  major=rgb(
+    sapply(1:6,\(x)sum(km$centers[x,]*pca$rotation[1,])),
+    sapply(1:6,\(x)sum(km$centers[x,]*pca$rotation[2,])),
+    sapply(1:6,\(x)sum(km$centers[x,]*pca$rotation[3,])))|>unique()
   
   palettes=sapply(major,\(x)sapply(major[1:match(x,major)],\(y)if(y!=x){pal(x,y,...)}))|>
     unlist()
   return(palettes)}
+
+p=from_img('../assets/monarch.jpg')
 
 ##convert colors to color vision modes##
 colorblind=function(colors){
