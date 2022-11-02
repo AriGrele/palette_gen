@@ -16,7 +16,7 @@ rand_col=function(l){
 ##check that input is a color, convert to hsluv if match##
 col_check=function(x){
   return(tryCatch({
-    if(length(x)==3){rgb_hsluv(x)} #separate functions due to weird way r treats ifelse
+    if(length(x)==3){rgb_hsluv(x)}                                              #separate functions due to weird way r treats ifelse
     else{rgb_hsluv(col2rgb(x)[,1]/255)}},
     error=\(e)'error'))}
 
@@ -29,6 +29,9 @@ pal=function(col1=NULL,col2=NULL,...){
   colors=colors[lengths(colors)>0]
   
   if(length(colors)==0){return(rand_pal(...))}
+  
+  if(any(sapply(c('.jpg','.png','jpeg','bmp'),\(x)regexpr(x,colors[[1]]))>0)){
+    return(from_img(colors[[1]]))}
   
   for(i in 1:length(colors)){colors[[i]]=col_check(colors[[i]])}
   
@@ -164,3 +167,14 @@ test=function(pal){
       volcan(pal),
       channels(pal),
       safe(pal)))}
+
+bars=function(pals){
+  plots=lapply(pals,\(p){
+    p=p(26)
+    ggplot2::ggplot()+
+      ggplot2::geom_tile(ggplot2::aes(1:length(p),1),fill=p,color=NA)+
+      ggplot2::theme_void()+
+      ggplot2::theme(plot.title=ggplot2::element_text(hjust=.5))})
+  
+  grid=do.call(cowplot::plot_grid,c(plots,'ncol'=1))
+  return(grid)}

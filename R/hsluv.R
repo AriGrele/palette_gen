@@ -1,22 +1,22 @@
 ##modified from HSluv GLSL port by William Malo (https://github.com/williammalo)
 
-radians=function(a){return(a/180*3.1415926)} #convert degrees to radians
+radians=function(a){return(a/180*3.1415926)}                                    #convert degrees to radians
 
-degrees=function(a){return(a/3.1415926*180)} #convert radians to degrees
+degrees=function(a){return(a/3.1415926*180)}                                    #convert radians to degrees
 
-dot=function(v1,v2){sum(v1*v2)} #vector dot product
+dot=function(v1,v2){sum(v1*v2)}                                                 #vector dot product
 
-euclid=function(v){return(sqrt(sum(v^2)))} #euclidean length of vector
+euclid=function(v){return(sqrt(sum(v^2)))}                                      #euclidean length of vector
 
-norm=function(x){ #scale vector between 0 and 1
+norm=function(x){                                                               #scale vector between 0 and 1
   x=x-min(x)
   return(x/max(x))}
 
-raylength=function(a,x,y){ #length of ray at intersection with colorspace border
+raylength=function(a,x,y){                                                      #length of ray at intersection with colorspace border
   len=y/(sin(a)-x*cos(a))
-  return(ifelse(len<c(0,0,0),1000,len))} #return arbitrarily large number if length negative
+  return(ifelse(len<c(0,0,0),1000,len))}                                        #return arbitrarily large number if length negative
 
-maxchroma=function(l,h){ #maximum chroma value for given luminosity and saturation
+maxchroma=function(l,h){                                                        #maximum chroma value for given luminosity and saturation
   hrad=radians(h)
   m2=matrix(
     c(3.2409699419045214,-0.96924363628087983,0.055630079696993609,
@@ -36,10 +36,10 @@ maxchroma=function(l,h){ #maximum chroma value for given luminosity and saturati
   x2=top1/(bottom+126452.0)
   y2=(top2-769860.0*l)/(bottom+126452.0)
   
-  lengths0=raylength(hrad,x1,y1) #two ray lengths at edge intersection
+  lengths0=raylength(hrad,x1,y1)                                                #two ray lengths at edge intersection
   lengths1=raylength(hrad,x2,y2)
   
-  return(min(c(lengths0,lengths1)))} #return smallest ray length
+  return(min(c(lengths0,lengths1)))}                                            #return smallest ray length
 
 ##convert linear rbg to hsluv
 linear_hsluv=function(C){return(ifelse(C<=rep(0.0031308,3),12.92*C,1.055*C^(1.0/2.4)-0.055))}
@@ -96,11 +96,11 @@ luv_lch=function(channels){
 
 ##convert hsluv to lch##
 hsluv_lch=function(channels){
-  channels[2]=channels[2]*maxchroma(channels[3],channels[1])*.01 #unscale chroma by maximum in hsluv
+  channels[2]=channels[2]*maxchroma(channels[3],channels[1])*.01                #unscale chroma by maximum in hsluv
   return(rev(channels))}
 ##convert lch to hsluv##
 lch_hsluv=function(channels){
-  channels[2]=channels[2]/(maxchroma(channels[1],channels[3])*.01) #scale chroma by maximum in hsluv
+  channels[2]=channels[2]/(maxchroma(channels[1],channels[3])*.01)              #scale chroma by maximum in hsluv
   return(rev(channels))}
 
 ##convert lch to rgb##
@@ -121,6 +121,3 @@ hsluv=function(h,s,l){
   if(min(col)<0){col=c(0,0,0)}
   
   return(rgb(col[1],col[2],col[3]))}
-
-
-
