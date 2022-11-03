@@ -1,3 +1,5 @@
+fract=function(x){return(x-floor(x))}                                           #fractional component 
+
 ##return semi-random color based on input color##
 rand_col=function(l){
   color=l[[1]]
@@ -23,6 +25,7 @@ col_check=function(x){
 ##generate palette based on zero, one, or two input colors##
 pal=function(col1=NULL,col2=NULL,...){
   options=list(...)
+    
   if('seed'%in%names(options)){set.seed(options$seed)}
   
   colors=list('col1'=col1,'col2'=col2)
@@ -41,9 +44,19 @@ pal=function(col1=NULL,col2=NULL,...){
     cat('Error: color not recognized\n')
     return(NULL)}
   
-  if(length(colors)==2){
-    if(colors[[2]][3]<colors[[1]][3]){gen_pal(rev(colors),...)}
-    else{gen_pal(colors,...)}}}
+  if(colors[[2]][3]<colors[[1]][3]){colors=rev(colors)}
+  
+  if(!is.null(options$mode)&is.null(options$pass)){
+    if(options$mode=='diverging'){
+      return(pal(hsluv_rgb(colors[[1]]),hsluv_rgb(colors[[2]]),...,pass=T,
+                 lm=0,lv=c(seq(colors[[1]][3],colors[[2]][3],length.out=64),
+                           seq(colors[[2]][3],colors[[1]][3],length.out=64))))}
+    
+    if(options$mode=='qualitative'){
+      return(pal(hsluv_rgb(colors[[1]]),hsluv_rgb(colors[[2]]),...,pass=T,
+                 cm=0,cv=colors[[1]][1]-10*(1:128)))}}
+  
+  gen_pal(colors,...)}
 
 ##generate random palette with no input colors##
 rand_pal=function(...){
@@ -53,19 +66,20 @@ rand_pal=function(...){
 ##generate palette with direct input to intial and final color, chroma, saturation, and luminance##
 gen_pal=function(cols,...){
   start=cols[[1]]
-  if(start[3]>30){start[3]=runif(1,10,25)}
   end=cols[[2]]
+  if(start[3]>30){start[3]=runif(1,10,25)}
   if(end[3]<65){end[3]=runif(1,70,85)}
   
   parms=list(...)
   
-  default=c('cv'=0,'sv'=0,'lv'=0,'cm'=1,'sm'=1,'lm'=1,'cp'=1,'sp'=1,'lp'=1,'csm'=0)
+  default=c('cv'=0,'sv'=0,'lv'=0,'cm'=1,'sm'=1,'lm'=1,'cp'=1,'sp'=1,'lp'=1,'sinv'=0,'sinm'=1)
   for(i in names(default)){if(is.null(parms[[i]])){parms[[i]]=default[i]}}
   
   parms=within(parms,{
-    chroma=    cv+csm*sin((1:128)/128*3.14159*2)+cm*((seq(start[1]^cp,end[1]^cp,length.out=128))^(1/cp))
-    saturation=sv+sm*((seq(start[2]^sp,end[2]^sp,length.out=128))^(1/sp))*.98+1
-    luminosity=lv+lm*((seq(start[3]^lp,end[3]^lp,length.out=128))^(1/lp))*.98+1
+    wave=sinv*sin((1:128)/128*3.14159*2*sinm)
+    chroma=wave+cv+cm*((seq(start[1]^cp,end[1]^cp,length.out=128))^(1/cp))
+    saturation= sv+sm*((seq(start[2]^sp,end[2]^sp,length.out=128))^(1/sp))*.98+1
+    luminosity= lv+lm*((seq(start[3]^lp,end[3]^lp,length.out=128))^(1/lp))*.98+1
     
     ramp=mapply(\(h,s,l)hsluv(h,s,l),chroma,saturation,luminosity)})
   
@@ -78,10 +92,10 @@ from_img=function(path,...){
     reshape2::dcast(x+y~cc,fun.aggregate=\(x)x[1])|>
     setNames(c('x','y','r','g','b'))
 
-  pca=prcomp(img[-2:0],center=F,scale=F)
+  pca=prcomp(img[-2:0],center=F,scale=F,rank=3)
   km=kmeans(as.data.frame(pca$x),16,20)
   
-  km$centers=matrix(c(#ugly
+  km$centers=matrix(c(                                                          #ugly
     km$centers[which(km$centers[,1]==max(km$centers[,1])),],
     km$centers[which(km$centers[,2]==max(km$centers[,2])),],
     km$centers[which(km$centers[,3]==max(km$centers[,3])),],
@@ -98,7 +112,18 @@ from_img=function(path,...){
     unlist()
   return(palettes)}
 
-p=from_img('../assets/monarch.jpg')
+##combine an arbitrary number of pals##
+mix=function(pal1,...){
+  mixture=function(n){
+    pals=c(list(pal1),list(...))
+    cols=mapply(\(x)x(n),pals)
+    
+    group=ceiling((1:n)/(n/length(pals)))
+
+    cols=sapply(1:length(pals),\(i)cols[,i][group==i])|>as.vector()
+    return(cols)}
+  
+  return(mixture)}
 
 ##convert colors to color vision modes##
 colorblind=function(colors){
