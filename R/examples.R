@@ -10,7 +10,7 @@ test(palette(256))
 palette=pal('lightblue','darkgreen')                                            #two fixed colors
 test(palette(256))
 
-palettes=pal('../assets/space.png')                                             #grab colors from image
+palettes=pal('../assets/monarch.jpg')                                           #grab colors from image
 bars(palettes)
 test(palettes[[1]](256))
 

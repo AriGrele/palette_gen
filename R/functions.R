@@ -20,12 +20,12 @@ col_check=function(x){
   return(tryCatch({
     if(length(x)==3){rgb_hsluv(x)}                                              #separate functions due to weird way r treats ifelse
     else{rgb_hsluv(col2rgb(x)[,1]/255)}},
-    error=\(e)'error'))}
+    error=\(e){'error';cat(x,'\n')}))}
 
 ##generate palette based on zero, one, or two input colors##
 pal=function(col1=NULL,col2=NULL,...){
   options=list(...)
-    
+  
   if('seed'%in%names(options)){set.seed(options$seed)}
   
   colors=list('col1'=col1,'col2'=col2)
@@ -34,7 +34,7 @@ pal=function(col1=NULL,col2=NULL,...){
   if(length(colors)==0){return(rand_pal(...))}
   
   if(any(sapply(c('.jpg','.png','jpeg','bmp'),\(x)regexpr(x,colors[[1]]))>0)){
-    return(from_img(colors[[1]]))}
+    return(from_img(colors[[1]],...))}
   
   for(i in 1:length(colors)){colors[[i]]=col_check(colors[[i]])}
   
@@ -65,15 +65,18 @@ rand_pal=function(...){
 
 ##generate palette with direct input to intial and final color, chroma, saturation, and luminance##
 gen_pal=function(cols,...){
+  parms=list(...)
+  
   start=cols[[1]]
   end=cols[[2]]
-  if(start[3]>30){start[3]=runif(1,10,25)}
-  if(end[3]<65){end[3]=runif(1,70,85)}
-  
-  parms=list(...)
+  if(!is.null(parms$adjust)){
+    if(start[3]>30){start[3]=runif(1,10,25)}
+    if(end[3]<65){end[3]=runif(1,70,85)}}
   
   default=c('cv'=0,'sv'=0,'lv'=0,'cm'=1,'sm'=1,'lm'=1,'cp'=1,'sp'=1,'lp'=1,'sinv'=0,'sinm'=1)
   for(i in names(default)){if(is.null(parms[[i]])){parms[[i]]=default[i]}}
+  
+  if(end[1]>start[1]){end[1]=end[1]-360}#prevent chroma from wrapping around the wrong way
   
   parms=within(parms,{
     wave=sinv*sin((1:128)/128*3.14159*2*sinm)
@@ -90,7 +93,8 @@ from_img=function(path,...){
   img=imager::load.image(path)|>
     as.data.frame()|>
     reshape2::dcast(x+y~cc,fun.aggregate=\(x)x[1])|>
-    setNames(c('x','y','r','g','b'))
+    setNames(c('x','y','r','g','b'))|>
+    aggregate(cbind(r,g,b)~floor(x/(max(x)/128))+floor(y/(max(y)/128)),\(x)x[1])
 
   pca=prcomp(img[-2:0],center=F,scale=F,rank=3)
   km=kmeans(as.data.frame(pca$x),16,20)
@@ -104,9 +108,11 @@ from_img=function(path,...){
     km$centers[which(km$centers[,3]==min(km$centers[,3])),]),ncol=3,byrow=T)
   
   major=rgb(
-    sapply(1:6,\(x)sum(km$centers[x,]*pca$rotation[1,])),
-    sapply(1:6,\(x)sum(km$centers[x,]*pca$rotation[2,])),
-    sapply(1:6,\(x)sum(km$centers[x,]*pca$rotation[3,])))|>unique()
+    sapply(1:6,\(x)sum(km$centers[x,]*pca$rotation[1,]))*.98+.01,
+    sapply(1:6,\(x)sum(km$centers[x,]*pca$rotation[2,]))*.98+.01,
+    sapply(1:6,\(x)sum(km$centers[x,]*pca$rotation[3,]))*.98+.01)|>unique()
+  
+  scales::show_col(major)
   
   palettes=sapply(major,\(x)sapply(major[1:match(x,major)],\(y)if(y!=x){pal(x,y,...)}))|>
     unlist()
